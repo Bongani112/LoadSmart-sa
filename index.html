@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LoadSmart SA — Enterprise Energy Management Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --navy: #0f172a;
+      --slate: #334155;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --amber: #b45309;
+      --amber-bg: #fffbeb;
+      --green: #15803d;
+      --green-bg: #f0fdf4;
+      --red: #b91c1c;
+      --red-bg: #fef2f2;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 1.5rem; }
+
+    /* Header */
+    header {
+      background: var(--navy);
+      color: white;
+      padding: 1.25rem 1.75rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.025em; display: flex; align-items: center; gap: 0.6rem; }
+    header p { color: #94a3b8; font-size: 0.82rem; margin-top: 0.15rem; }
+    .area-selector { display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.08); padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); }
+    .area-selector select { background: transparent; color: white; border: none; font-size: 0.85rem; outline: none; cursor: pointer; }
+    .area-selector select option { background: var(--navy); color: white; }
+
+    /* Navigation Tabs */
+    .nav-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.25rem; }
+    .tab-btn {
+      background: var(--card-bg);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      border-radius: var(--radius);
+      font-weight: 500;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .tab-btn:hover { background: #f1f5f9; color: var(--navy); }
+    .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; box-shadow: 0 1px 2px rgba(2, 132, 199, 0.2); }
+
+    /* KPI Summary Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .kpi-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .kpi-card small { color: var(--text-muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-card .val { font-size: 1.5rem; font-weight: 700; margin: 0.3rem 0 0.15rem 0; color: var(--navy); }
+    .kpi-card .sub { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Layout & Cards */
+    .main-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.5rem; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 1.5rem; min-width: 0; }
+    .card h2 { font-size: 1rem; color: var(--navy); font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Fixed Chart Container (Prevents Chart.js resize loop/stretching) */
+    .chart-wrapper {
+      position: relative;
+      height: 260px;
+      width: 100%;
+    }
+
+    /* Forms & Controls */
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.85rem; margin-bottom: 1rem; }
+    label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--slate); margin-bottom: 0.35rem; }
+    input, select { width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem; outline: none; background: #fff; color: var(--text); transition: border-color 0.15s; }
+    input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
+    
+    button.btn-primary { background: var(--primary); color: white; border: none; padding: 0.65rem 1.1rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.88rem; transition: background 0.15s; width: 100%; }
+    button.btn-primary:hover { background: var(--primary-hover); }
+    
+    button.btn-warning { background: #d97706; color: white; border: none; padding: 0.65rem 1.1rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.88rem; width: 100%; transition: background 0.15s; }
+    button.btn-warning:hover { background: #b45309; }
+
+    /* Status Badges */
+    .badge { padding: 0.25rem 0.55rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; letter-spacing: 0.02em; }
+    .badge-official { background: var(--green-bg); color: var(--green); border: 1px solid #bbf7d0; }
+    .badge-community { background: var(--amber-bg); color: var(--amber); border: 1px solid #fde68a; }
+    .badge-danger { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+
+    /* Outage Feed Items */
+    .outage-item { border: 1px solid var(--border); border-radius: 6px; padding: 1rem; margin-bottom: 0.85rem; background: #fafafa; transition: border-color 0.15s; }
+    .outage-item:hover { border-color: #cbd5e1; }
+    .outage-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; gap: 0.5rem; flex-wrap: wrap; }
+    
+    .safety-note { background: var(--red-bg); border: 1px solid #fecaca; color: var(--red); padding: 0.85rem; border-radius: 6px; font-size: 0.8rem; margin-top: 1rem; line-height: 1.4; }
+
+    /* Backup Highlight Box */
+    .runtime-result {
+      background: var(--navy);
+      color: white;
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      margin-top: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .runtime-hours { font-size: 2.25rem; font-weight: 800; color: #38bdf8; line-height: 1; margin-top: 0.2rem; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 0.75rem; border-bottom: 1px solid var(--border); text-align: left; }
+    th { background: #f8fafc; color: var(--slate); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Recommendations / Tip Boxes */
+    .tip-box { background: #f0f9ff; border-left: 3px solid var(--primary); padding: 0.85rem 1rem; border-radius: 0 6px 6px 0; margin-bottom: 0.75rem; font-size: 0.85rem; color: #0369a1; line-height: 1.4; }
+    .tip-box strong { color: var(--navy); }
+
+    .section-view { display: none; }
+    .section-view.active { display: block; }
+
+    /* Preset Buttons */
+    .preset-btn { text-align: left; background: #fff; border: 1px solid var(--border); color: var(--text); padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.15s; width: 100%; }
+    .preset-btn:hover { border-color: var(--primary); background: #f8fafc; }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 550px) {
+      body { padding: 0.75rem; }
+      .kpi-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        LOADSMART SA
+      </h1>
+      <p>Smart Electricity Management, Backup Runtime & Outage Planning Platform</p>
+    </div>
+    <div class="area-selector">
+      <span style="font-size: 0.78rem; color: #94a3b8; font-weight: 500;">Area:</span>
+      <select id="areaSelect" onchange="filterOutagesByArea()">
+        <option value="All">All South Africa</option>
+        <option value="Gauteng - Emfuleni / Vanderbijlpark">Gauteng — Emfuleni / Vanderbijlpark</option>
+        <option value="Gauteng - Johannesburg">Gauteng — Johannesburg</option>
+        <option value="Western Cape - Cape Town">Western Cape — Cape Town</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('overview', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+      Dashboard Overview
+    </button>
+    <button class="tab-btn" onclick="switchTab('outages', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+      Outages & Community Reports
+    </button>
+    <button class="tab-btn" onclick="switchTab('appliances', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6m0 8v6M4.93 10.93l4.24 4.24m5.66 0l4.24-4.24"/></svg>
+      Appliance Calculator
+    </button>
+    <button class="tab-btn" onclick="switchTab('backup', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="10" x="2" y="7" rx="2" ry="2"/><line x1="22" x2="22" y1="11" y2="13"/></svg>
+      Backup Power Planner
+    </button>
+  </div>
+
+  <!-- Top KPI Metrics -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <small>Monthly Consumption</small>
+      <div class="val" id="kpiKwh">87 kWh</div>
+      <div class="sub" id="kpiTargetStatus" style="color: var(--green);">293 kWh below target</div>
+    </div>
+    <div class="kpi-card">
+      <small>Est. Monthly Cost</small>
+      <div class="val" id="kpiCost">R260.10</div>
+      <div class="sub">Tariff Rate: R3.00 / kWh</div>
+    </div>
+    <div class="kpi-card">
+      <small>Daily Average</small>
+      <div class="val" id="kpiDaily">2.9 kWh</div>
+      <div class="sub">Target: 380 kWh / month (12.6 kWh/day)</div>
+    </div>
+    <div class="kpi-card">
+      <small>Est. Backup Runtime</small>
+      <div class="val" id="kpiRuntime" style="color: var(--primary);">8.0 hrs</div>
+      <div class="sub">At current 200 W load</div>
+    </div>
+  </div>
+
+  <!-- TAB 1: OVERVIEW DASHBOARD -->
+  <div id="overview" class="section-view active">
+    <div class="main-grid">
+      <div>
+        <div class="card">
+          <h2>Daily Electricity Consumption vs. Target (kWh)</h2>
+          <div class="chart-wrapper">
+            <canvas id="usageChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Smart Electricity-Saving Recommendations</h2>
+          <div id="recommendationsList">
+            <div class="tip-box" id="dynamicTargetTip">
+              <strong>Consumption Status:</strong> Your tracked appliance load is currently within your <strong>380 kWh</strong> monthly target.
+            </div>
+            <div class="tip-box">
+              <strong>Peak Load Shifting:</strong> Run heavy appliances (geysers, washing machines, kettles) outside evening peak windows (17:00–21:00) to protect battery reserves.
+            </div>
+            <div class="tip-box">
+              <strong>Standby Power Reduction:</strong> Switching off entertainment systems and chargers at the wall can trim 5–8% off monthly household usage.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Upcoming & Reported Area Outages</h2>
+          <div id="overviewOutageFeed"></div>
+          <button class="btn-primary" style="margin-top: 0.5rem;" onclick="switchTab('outages', document.querySelectorAll('.tab-btn')[1])">
+            Manage Schedules or Report Outage &rarr;
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: OUTAGES -->
+  <div id="outages" class="section-view">
+    <div class="main-grid">
+      <div class="card">
+        <h2>Scheduled & Community Outages</h2>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.4;">
+          Official utility schedules are verified. Community reports are labelled as unverified until confirmed by local sources.
+        </p>
+        <div id="fullOutageList"></div>
+      </div>
+
+      <div class="card">
+        <h2>Report an Unexpected Outage or Fault</h2>
+        <div class="form-row">
+          <div>
+            <label>Area / Suburb</label>
+            <select id="repArea">
+              <option value="Gauteng - Emfuleni / Vanderbijlpark">Gauteng — Emfuleni / Vanderbijlpark</option>
+              <option value="Gauteng - Johannesburg">Gauteng — Johannesburg</option>
+              <option value="Western Cape - Cape Town">Western Cape — Cape Town</option>
+            </select>
+          </div>
+          <div>
+            <label>Issue Type</label>
+            <select id="repType">
+              <option value="Unexpected Power Outage">Unexpected Power Outage</option>
+              <option value="Damaged Infrastructure / Substation">Damaged Infrastructure</option>
+              <option value="Fallen Electricity Cable">Fallen Electricity Cable</option>
+              <option value="Power Restored">Power Restored</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label>Notes / Street Landmark</label>
+          <input type="text" id="repNotes" placeholder="e.g., Power went off at 14:15 near Hendrik Van Eck Blvd" />
+        </div>
+        <button class="btn-warning" onclick="submitCommunityReport()">Submit Community Report</button>
+
+        <div class="safety-note">
+          <strong>Safety Notice:</strong> Community reports are unverified alerts. Never approach fallen power lines or damaged transformers—report emergencies directly to Eskom (08600 37566) or your municipal emergency services.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: APPLIANCES -->
+  <div id="appliances" class="section-view">
+    <div class="main-grid">
+      <div class="card">
+        <h2>Add Appliance to Estimate Usage</h2>
+        <div class="form-row">
+          <div>
+            <label>Appliance Name</label>
+            <input type="text" id="appName" placeholder="e.g., Electric Kettle" />
+          </div>
+          <div>
+            <label>Power Rating (Watts)</label>
+            <input type="number" id="appWatts" placeholder="e.g., 2000" min="1" />
+          </div>
+          <div>
+            <label>Daily Usage (Hours)</label>
+            <input type="number" id="appHours" placeholder="e.g., 0.25" step="0.1" min="0.1" />
+          </div>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+          Formula: <strong>kWh = (Watts &times; Hours) &divide; 1000</strong> | Estimated at R3.00 per kWh tariff rate.
+        </p>
+        <button class="btn-primary" onclick="addAppliance()">+ Calculate & Add Appliance</button>
+      </div>
+
+      <div class="card">
+        <h2>Household Appliance Breakdown</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Appliance</th>
+                <th>Power</th>
+                <th>Daily Hrs</th>
+                <th>Daily kWh</th>
+                <th>Monthly Cost</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="applianceTableBody"></tbody>
+          </table>
+        </div>
+        <div style="margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-weight: 600; font-size: 0.88rem;">
+          <span>Total Calculated Daily Load:</span>
+          <span id="totalAppSummary" style="color: var(--primary);">0 kWh / day</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: BACKUP POWER PLANNER -->
+  <div id="backup" class="section-view">
+    <div class="main-grid">
+      <div class="card">
+        <h2>Backup Battery & Inverter Setup</h2>
+        <div class="form-row">
+          <div>
+            <label>Battery Capacity (Wh)</label>
+            <input type="number" id="batCapacity" value="2000" min="100" oninput="calculateBackupRuntime()" />
+          </div>
+          <div>
+            <label>Current Charge (%)</label>
+            <input type="number" id="batCharge" value="80" min="1" max="100" oninput="calculateBackupRuntime()" />
+          </div>
+          <div>
+            <label>Connected Load (Watts)</label>
+            <input type="number" id="batLoad" value="200" min="10" oninput="calculateBackupRuntime()" />
+          </div>
+        </div>
+
+        <div class="runtime-result">
+          <div>
+            <small style="color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; font-size: 0.7rem;">Estimated Backup Runtime</small>
+            <div class="runtime-hours" id="runtimeDisplay">8.0 Hours</div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-top: 0.3rem;" id="usableWhDisplay">
+              Usable Energy: 1,600 Wh at 200 W continuous load
+            </p>
+          </div>
+          <div style="text-align: right;">
+            <span class="badge badge-official" id="loadStatusBadge">Optimal Load</span>
+          </div>
+        </div>
+
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 1rem; line-height: 1.4;">
+          *Formula: <code>Runtime = (Capacity &times; Charge%) &divide; Connected Watts</code>. Idealised estimate; actual duration varies with inverter efficiency (~85–90%) and battery Depth-of-Discharge (DoD) limits.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Quick Load Presets (Test Scenarios)</h2>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+          Select a scenario below to test how different household loads impact your backup battery endurance:
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+          <button class="preset-btn" onclick="applyBackupPreset(2000, 80, 120)">
+            <strong>Remote Work Mode (120 W)</strong><br/><span style="color:var(--text-muted);">Wi-Fi Router + Laptop + LED Task Lamp</span>
+          </button>
+          <button class="preset-btn" onclick="applyBackupPreset(2000, 80, 265)">
+            <strong>Evening Essentials Mode (265 W)</strong><br/><span style="color:var(--text-muted);">TV (100 W) + Fridge Compressor (150 W) + Lights (15 W)</span>
+          </button>
+          <button class="preset-btn" onclick="applyBackupPreset(2000, 80, 2200)">
+            <strong>High-Draw Warning (2,200 W)</strong><br/><span style="color:var(--text-muted);">Kettle (2,000 W) + Entertainment Setup — Rapid battery drain</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TARIFF_RATE = 3.00; // R3.00 per kWh
+    const MONTHLY_TARGET_KWH = 380;
+    const DAILY_TARGET_KWH = 12.6;
+
+    let outagesData = [
+      {
+        id: 1,
+        area: "Gauteng - Emfuleni / Vanderbijlpark",
+        type: "Scheduled Maintenance / Load Reduction",
+        time: "Today, 18:00 – 20:30",
+        source: "Official Schedule",
+        verified: true,
+        notes: "Substation feeder maintenance. Charge laptops and prepare meals before 17:45."
+      },
+      {
+        id: 2,
+        area: "Gauteng - Johannesburg",
+        type: "Unexpected Power Outage",
+        time: "Reported 25 mins ago",
+        source: "Community Report",
+        verified: false,
+        notes: "Multiple households reporting outage in Randburg sector."
+      },
+      {
+        id: 3,
+        area: "Western Cape - Cape Town",
+        type: "Scheduled Grid Maintenance",
+        time: "Tomorrow, 09:00 – 13:00",
+        source: "Official Schedule",
+        verified: true,
+        notes: "Planned municipal grid upgrade."
+      }
+    ];
+
+    let appliances = [
+      { id: 1, name: "Television", watts: 100, hours: 5 },
+      { id: 2, name: "Laptop", watts: 65, hours: 6 },
+      { id: 3, name: "Fridge (Compressor avg)", watts: 150, hours: 10 },
+      { id: 4, name: "Electric Kettle", watts: 2000, hours: 0.25 }
+    ];
+
+    function switchTab(tabId, btnEl) {
+      document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      if (btnEl) btnEl.classList.add('active');
+
+      if (tabId === 'overview' && window.usageChartInstance) {
+        window.usageChartInstance.resize();
+      }
+    }
+
+    function renderOutages() {
+      const selectedArea = document.getElementById("areaSelect").value;
+      const filtered = selectedArea === "All"
+        ? outagesData
+        : outagesData.filter(o => o.area === selectedArea);
+
+      const html = filtered.length === 0
+        ? `<p style="color: var(--text-muted); font-size: 0.85rem;">No outages recorded for this area.</p>`
+        : filtered.map(o => `
+          <div class="outage-item">
+            <div class="outage-top">
+              <strong>${o.area}</strong>
+              <span class="badge ${o.verified ? 'badge-official' : 'badge-community'}">
+                ${o.verified ? 'Official Schedule' : 'Community Report (Unverified)'}
+              </span>
+            </div>
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-top: 0.2rem;">${o.type} &mdash; <span style="color: var(--primary);">${o.time}</span></div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.4;">${o.notes}</p>
+          </div>
+        `).join('');
+
+      document.getElementById("overviewOutageFeed").innerHTML = html;
+      document.getElementById("fullOutageList").innerHTML = html;
+    }
+
+    function filterOutagesByArea() {
+      renderOutages();
+    }
+
+    function submitCommunityReport() {
+      const area = document.getElementById("repArea").value;
+      const type = document.getElementById("repType").value;
+      const notes = document.getElementById("repNotes").value.trim() || "User-submitted area interruption report.";
+
+      outagesData.unshift({
+        id: Date.now(),
+        area,
+        type,
+        time: "Just now",
+        source: "Community Report",
+        verified: false,
+        notes
+      });
+
+      document.getElementById("repNotes").value = "";
+      renderOutages();
+      alert("Community report submitted and labelled as unverified.");
+    }
+
+    function renderAppliances() {
+      const tbody = document.getElementById("applianceTableBody");
+      let totalDailyKwh = 0;
+
+      tbody.innerHTML = appliances.map(app => {
+        const dailyKwh = (app.watts * app.hours) / 1000;
+        const monthlyCost = dailyKwh * 30 * TARIFF_RATE;
+        totalDailyKwh += dailyKwh;
+
+        return `
+          <tr>
+            <td><strong>${app.name}</strong></td>
+            <td>${app.watts} W</td>
+            <td>${app.hours} hrs</td>
+            <td><strong>${dailyKwh.toFixed(2)} kWh</strong></td>
+            <td>R${monthlyCost.toFixed(2)}</td>
+            <td><button style="background:none; border:none; color:var(--red); cursor:pointer; font-weight:700; font-size:1rem;" onclick="removeAppliance(${app.id})" title="Remove">&times;</button></td>
+          </tr>
+        `;
+      }).join('');
+
+      const monthlyKwh = totalDailyKwh * 30;
+      const monthlyCost = monthlyKwh * TARIFF_RATE;
+      const diff = monthlyKwh - MONTHLY_TARGET_KWH;
+
+      document.getElementById("totalAppSummary").innerText = `${totalDailyKwh.toFixed(2)} kWh / day (${monthlyKwh.toFixed(0)} kWh / month)`;
+      document.getElementById("kpiKwh").innerText = `${monthlyKwh.toFixed(0)} kWh`;
+      document.getElementById("kpiCost").innerText = `R${monthlyCost.toFixed(2)}`;
+      document.getElementById("kpiDaily").innerText = `${totalDailyKwh.toFixed(1)} kWh`;
+
+      const statusEl = document.getElementById("kpiTargetStatus");
+      const tipEl = document.getElementById("dynamicTargetTip");
+
+      if (diff > 0) {
+        statusEl.style.color = "var(--amber)";
+        statusEl.innerText = `+${diff.toFixed(0)} kWh above target`;
+        tipEl.innerHTML = `<strong>High-Consumption Alert:</strong> Your monthly estimate (<strong>${monthlyKwh.toFixed(0)} kWh</strong>) exceeds your <strong>${MONTHLY_TARGET_KWH} kWh</strong> target by ${((diff / MONTHLY_TARGET_KWH) * 100).toFixed(1)}%.`;
+      } else {
+        statusEl.style.color = "var(--green)";
+        statusEl.innerText = `${Math.abs(diff).toFixed(0)} kWh below target`;
+        tipEl.innerHTML = `<strong>Consumption Status:</strong> Your monthly estimate (<strong>${monthlyKwh.toFixed(0)} kWh</strong>) is safely within your <strong>${MONTHLY_TARGET_KWH} kWh</strong> target.`;
+      }
+
+      updateChartData(totalDailyKwh);
+    }
+
+    function addAppliance() {
+      const name = document.getElementById("appName").value.trim();
+      const watts = parseFloat(document.getElementById("appWatts").value);
+      const hours = parseFloat(document.getElementById("appHours").value);
+
+      if (!name || isNaN(watts) || watts <= 0 || isNaN(hours) || hours <= 0) {
+        alert("Please enter a valid appliance name, wattage, and daily hours.");
+        return;
+      }
+
+      appliances.push({ id: Date.now(), name, watts, hours });
+      document.getElementById("appName").value = "";
+      document.getElementById("appWatts").value = "";
+      document.getElementById("appHours").value = "";
+      renderAppliances();
+    }
+
+    function removeAppliance(id) {
+      appliances = appliances.filter(a => a.id !== id);
+      renderAppliances();
+    }
+
+    function calculateBackupRuntime() {
+      const capacity = parseFloat(document.getElementById("batCapacity").value) || 0;
+      const charge = parseFloat(document.getElementById("batCharge").value) || 0;
+      const load = parseFloat(document.getElementById("batLoad").value) || 1;
+
+      const usableWh = capacity * (charge / 100);
+      const runtimeHours = usableWh / load;
+
+      document.getElementById("runtimeDisplay").innerText = `${runtimeHours.toFixed(1)} Hours`;
+      document.getElementById("usableWhDisplay").innerText = `Usable Energy: ${usableWh.toFixed(0)} Wh at ${load} W continuous load`;
+      document.getElementById("kpiRuntime").innerText = `${runtimeHours.toFixed(1)} hrs`;
+
+      const badge = document.getElementById("loadStatusBadge");
+      if (load > 1000) {
+        badge.className = "badge badge-danger";
+        badge.innerText = "Heavy Load — Fast Drain";
+      } else {
+        badge.className = "badge badge-official";
+        badge.innerText = "Optimal Load";
+      }
+    }
+
+    function applyBackupPreset(cap, charge, load) {
+      document.getElementById("batCapacity").value = cap;
+      document.getElementById("batCharge").value = charge;
+      document.getElementById("batLoad").value = load;
+      calculateBackupRuntime();
+    }
+
+    function getWeeklyDistribution(avgDailyKwh) {
+      // Realistic weekday/weekend variance centered around the user's calculated daily kWh
+      const multipliers = [0.95, 1.05, 0.90, 1.08, 1.00, 1.15, 0.87];
+      return multipliers.map(m => +(avgDailyKwh * m).toFixed(2));
+    }
+
+    function updateChartData(avgDailyKwh) {
+      if (!window.usageChartInstance) return;
+      window.usageChartInstance.data.datasets[0].data = getWeeklyDistribution(avgDailyKwh);
+      window.usageChartInstance.update();
+    }
+
+    function initChart() {
+      const usageCanvas = document.getElementById("usageChart");
+      if (!usageCanvas || typeof Chart === "undefined") return;
+
+      if (window.usageChartInstance) {
+        window.usageChartInstance.destroy();
+      }
+
+      const initialDaily = appliances.reduce((sum, app) => sum + (app.watts * app.hours) / 1000, 0);
+      const ctx = usageCanvas.getContext("2d");
+
+      window.usageChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [
+            {
+              label: 'Daily Usage (kWh)',
+              data: getWeeklyDistribution(initialDaily),
+              backgroundColor: '#0284c7',
+              borderRadius: 4,
+              order: 2
+            },
+            {
+              label: `Daily Target (${DAILY_TARGET_KWH} kWh)`,
+              data: Array(7).fill(DAILY_TARGET_KWH),
+              type: 'line',
+              borderColor: '#d97706',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointRadius: 0,
+              fill: false,
+              order: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 12, font: { size: 11 } }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              suggestedMax: 15,
+              grid: { color: '#f1f5f9' },
+              title: { display: true, text: 'kWh', font: { size: 11 } }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // Initialize prototype components
+    renderOutages();
+    renderAppliances();
+    calculateBackupRuntime();
+
+    if (document.readyState === 'complete') {
+      initChart();
+    } else {
+      window.addEventListener('load', initChart);
+    }
+  </script>
+</body>
+</html>
